@@ -85,6 +85,17 @@
 		});
 	};
 
+	NodeList.prototype.css = function (css) {
+		this.forEach(function (elem) {
+			var cssText = '', prop;
+			for (prop in css)
+				cssText += prop + ':' + css[prop] + ';';
+			elem.style.cssText = cssText;
+		});
+
+		return this;
+	};
+
 	NodeList.prototype.hide = function () {
 		this.forEach(function (elem) {
 			elem.style.display = 'none';
