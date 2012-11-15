@@ -21,11 +21,10 @@
 		return obj.length !== undefined ? slice.call(obj) : [obj];
 	};
 
-	// Selector
-	lithe.q1 = function (selector) {
-		if (typeof selector === 'string')
-			selector = document.querySelector(selector);
-		return new NodeList(document.querySelector(selector));
+	lithe.unique = function (array) {
+		return array.filter(function (elem, index) {
+			return array.indexOf(elem) === index;
+		});
 	};
 
 	function NodeList(selector, context) {
@@ -38,21 +37,7 @@
 				selector = context + ' ' + selector;
 				context = document;
 			}
-
-			if (selector.indexOf(' ') < 0) {
-				switch (selector[0]) {
-					case '#':
-						nodes = [context.getElementById(selector.substr(1))];
-						break;
-					case '.':
-						nodes = context.getElementsByClassName(selector.substr(1));
-						break;
-					default:
-						nodes = context.getElementsByTagName(selector);
-				}
-			}
-			else
-				nodes = context.querySelectorAll(selector);
+			nodes = context.querySelectorAll(selector);
 		}
 		else if (selector && selector.nodeType)
 			nodes = [selector];
@@ -64,22 +49,26 @@
 
 	NodeList.prototype = [];
 
-	NodeList.prototype.slice = function () {
-		return lithe(slice.apply(this, arguments));
-	};
+	['slice', 'filter', 'map'].forEach(function (method) {
+		NodeList.prototype[method] = function () {
+			return lithe(Array.prototype[method].apply(this, arguments));
+		};
+	});
 
 	NodeList.prototype.concat = function () {
-		var copy = lithe.toArray(this);
-
-		return lithe(lithe.toArray(arguments).reduce(function (list, nodeList) {
-			return list.concat(lithe.toArray(nodeList));
-		}, copy));
+		return lithe(
+			lithe.toArray(arguments).reduce(function (list, nodeList) {
+				return list.concat(lithe.toArray(nodeList));
+			}, lithe.toArray(this))
+		);
 	};
 
 	NodeList.prototype.find = function (selector) {
-		return this.reduce(function (list, elem) {
-			return list.concat(lithe(selector, elem));
-		}, lithe());
+		return lithe.unique(
+			this.reduce(function (list, elem) {
+				return list.concat(lithe(selector, elem));
+			}, lithe())
+		);
 	};
 
 	NodeList.prototype.children = function (selector) {
@@ -114,14 +103,24 @@
 
 	// Events
 	NodeList.prototype.on = function (events, selector, callback) {
+		var cb;
 		events = events.split(' ');
+		if (typeof selector === 'function') {
+			cb = callback = selector;
+			selector = null;
+		}
+		else
+			cb = function (e, elem, selector) {
+				var matchIndex = lithe(elem).find(selector).indexOf(e.target);
+
+				if (matchIndex >= 0)
+					callback.call(e.target, e);
+			};
+
 		this.forEach(function (elem) {
 			events.forEach(function (event) {
 				elem.addEventListener(event, function (e) {
-					var matchIndex = elem.find(selector).indexOf(e.target);
-
-					if (matchIndex >= 0)
-						callback.call(e.target);
+					cb.call(e.currentTarget, e, elem, selector);
 				});
 			});
 		});
