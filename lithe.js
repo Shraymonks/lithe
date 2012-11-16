@@ -1,11 +1,11 @@
-(function(){
+(function () {
 	'use strict';
 
 	var lithe = function (selector, context) {
 		return new NodeList(selector, context);
 	},
-	forEach = Array.prototype.forEach,
-	slice = Array.prototype.slice;
+	forEach = [].forEach,
+	slice = [].slice;
 
 	lithe.extend = function (obj) {
 		forEach.call(slice.call(arguments, 1), function (source) {
@@ -85,6 +85,30 @@
 		});
 	};
 
+	NodeList.prototype.append = function () {
+		var frag = document.createDocumentFragment();
+
+		lithe.toArray(arguments).forEach(function (elem) {
+			frag.appendChild(elem);
+		});
+		this.forEach(function (elem) {
+			elem.appendChild(frag.cloneNode(true));
+		});
+
+		return this;
+	};
+
+	NodeList.prototype.attr = function (name, value) {
+		if (typeof value === 'undefined')
+			return this[0].getAttribute(name);
+
+		this.forEach(function (elem) {
+			elem.setAttribute(name, value);
+		});
+
+		return this;
+	};
+
 	NodeList.prototype.css = function (css) {
 		this.forEach(function (elem) {
 			var cssText = '', prop;
@@ -94,6 +118,19 @@
 		});
 
 		return this;
+	};
+
+	NodeList.prototype.addClass = function (className) {
+		this.forEach(function (elem) {
+			if (elem.className.indexOf(new RegExp('\b' + className + '\b')) < 0)
+				elem.className += ' ' + className;
+		});
+	};
+
+	NodeList.prototype.removeClass = function (className) {
+		this.forEach(function (elem) {
+			elem.className = elem.className.replace(new RegExp('\b' + className + '\b', 'g'), '');
+		});
 	};
 
 	NodeList.prototype.hide = function () {
@@ -115,7 +152,7 @@
 	// Events
 	NodeList.prototype.on = function (events, selector, callback) {
 		var cb;
-		events = events.split(' ');
+		events = events.split(/\s+/);
 		if (typeof selector === 'function') {
 			cb = callback = selector;
 			selector = null;
