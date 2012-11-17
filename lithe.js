@@ -89,10 +89,31 @@
 		var frag = document.createDocumentFragment();
 
 		lithe.toArray(arguments).forEach(function (elem) {
-			frag.appendChild(elem);
+			// lithe object
+			if (elem instanceof NodeList)
+				elem.forEach(function (elem) {
+					frag.appendChild(elem);
+				});
+			// html string
+			else if (typeof elem === 'string')
+				frag.insertAdjacentHTML('beforeEnd', elem);
+			// element
+			else
+				frag.appendChild(elem);
 		});
 		this.forEach(function (elem) {
 			elem.appendChild(frag.cloneNode(true));
+		});
+
+		return this;
+	};
+
+	NodeList.prototype.html = function (html) {
+		if (typeof html === 'undefined')
+			return this[0].innerHTML;
+
+		this.forEach(function (elem) {
+			elem.innerHTML = html;
 		});
 
 		return this;
@@ -107,6 +128,15 @@
 		});
 
 		return this;
+	};
+
+	// TODO
+	NodeList.prototype.animate = function (options) {
+		var defaults = {
+			duration: 400,
+			easing: 'ease'
+		},
+		settings = lithe.extend(defaults, options);
 	};
 
 	NodeList.prototype.css = function (css) {
@@ -176,10 +206,12 @@
 		return this;
 	};
 
+	// TODO
 	NodeList.prototype.off = function (events, selector, callback) {
 
 	};
 
+	// TODO
 	NodeList.prototype.trigger = function (events) {
 
 	};
@@ -217,9 +249,13 @@
 				if (typeof settings.complete === 'function')
 					settings.complete(request);
 
-				if (request.status === 200 && typeof settings.success === 'function')
+				// Success
+				if ((request.status >= 200 && request.status < 300 || request.status === 304)
+					&& typeof settings.success === 'function')
+
 					settings.success(request.responseText, request);
 
+				// Error
 				else if (typeof settings.error === 'function')
 					settings.error(request);
 			}
@@ -237,6 +273,7 @@
 		return lithe.ajax({url: url, success: success});
 	};
 
+	// TODO
 	lithe.ajaxJSONP = function (options) {
 		var script = document.createElement('script');
 	};
